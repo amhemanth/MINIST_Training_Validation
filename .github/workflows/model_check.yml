@@ -19,61 +19,49 @@ env:
 # Workflow jobs
 jobs:
   # Job 1: Unit Tests
-  # unit-tests:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@v3.5.3
-  #   - name: Set up Python
-  #     uses: actions/setup-python@v4.7.1
-  #     with:
-  #       python-version: ${{ env.PYTHON_VERSION }}
-  #       cache: 'pip'
-  #   - name: Install dependencies  # Install test dependencies
-  #     run: |
-  #       python -m pip install --upgrade pip wheel setuptools
-  #       pip install -r requirements.txt
-  #       pip install pytest pytest-cov pytest-xdist coverage
-  #       # Show directory structure before install
-  #       echo "Directory structure before install:"
-  #       find src -type f -name "*.py"
-  #       # Install package
-  #       pip install -e .
-  #       # Show installed package info
-  #       pip show mnist-classification
-  #       # Show directory structure after install
-  #       echo "Directory structure after install:"
-  #       find src -type f -name "*.py"
-  #       # Verify imports
-  #       python -c "import sys; print('Python path:', sys.path)"
-  #       python -c "import src; from src import data; print('src.data location:', data.__file__)"
-  #   - name: Run unit tests with coverage  # Run tests and generate coverage
-  #     env:
-  #       PYTHONPATH: ${{ github.workspace }}
-  #     run: |
-  #       python -m pytest tests/unit -v -n auto --import-mode=importlib --cov=src
-  #       coverage report --fail-under=${{ env.MIN_COVERAGE }}
-  #       coverage xml
-  #       coverage html
-  #   - name: Upload coverage to Codecov  # Share coverage reports
-  #     uses: codecov/codecov-action@v4
-  #     with:
-  #       token: ${{ secrets.CODECOV_TOKEN }}
-  #       files: ./coverage.xml
-  #       flags: unittests
-  #       name: codecov-unit
-  #       fail_ci_if_error: true
-  #   - name: Upload coverage artifacts  # Save coverage reports
-  #     uses: actions/upload-artifact@v4.0.0
-  #     with:
-  #       name: unit-test-coverage
-  #       path: |
-  #         coverage.xml
-  #         htmlcov/
-  #       retention-days: 5
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3.5.3
+    - name: Set up Python
+      uses: actions/setup-python@v4.7.1
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    - name: Install dependencies  # Install test dependencies
+      run: |
+        python -m pip install --upgrade pip wheel setuptools
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-xdist coverage
+        pip install -e .
+    - name: Run unit tests with coverage  # Run tests and generate coverage
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        python -m pytest tests/unit -v -n auto --import-mode=importlib --cov=src
+        coverage report --fail-under=${{ env.MIN_COVERAGE }}
+        coverage xml
+        coverage html
+    - name: Upload coverage to Codecov  # Share coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-unit
+        fail_ci_if_error: true
+    - name: Upload coverage artifacts  # Save coverage reports
+      uses: actions/upload-artifact@v4.0.0
+      with:
+        name: unit-test-coverage
+        path: |
+          coverage.xml
+          htmlcov/
+        retention-days: 5
 
-  # # Job 2: Integration Tests
-  # integration-tests:
+  # Job 2: Integration Tests
+  integration-tests:
     needs: unit-tests  # Run after unit-tests job
     runs-on: ubuntu-latest
     steps:
@@ -113,26 +101,9 @@ jobs:
           htmlcov/
         retention-days: 5
 
-  # Job 3: Coverage Report Generation
-  # coverage-report:
-  #   needs: [unit-tests, integration-tests]  # Run after both test jobs
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@v3.5.3
-  #   - name: Download coverage artifacts  # Get all coverage reports
-  #     uses: actions/download-artifact@v4
-  #     with:
-  #       path: coverage-data
-  #       pattern: '**/*-test-coverage'
-  #   - name: Combine coverage reports  # Merge coverage data
-  #     run: |
-  #       ls -la coverage-data
-  #       echo "Coverage reports downloaded and available in artifacts"
-
-  # Job 4: Model Architecture Validation
+  # Job 3: Model Architecture Validation
   model-validation:
-    needs: coverage-report  # Run after coverage report
+    needs: integration-tests  # Run after integration tests
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -160,7 +131,7 @@ jobs:
         print(f'Model validation passed: {total_params} parameters')
         "
 
-  # Job 5: Model Performance Testing
+  # Job 4: Model Performance Testing
   model-performance:
     needs: model-validation  # Run after model validation
     runs-on: ubuntu-latest
