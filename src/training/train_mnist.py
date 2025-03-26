@@ -13,12 +13,12 @@ It handles:
 import argparse
 import os
 import sys
-import torch
-import torch.optim as optim
 
 # Add parent directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import torch
+import torch.optim as optim
 from src.data.mnist_data import get_data_loaders
 from src.models.mnist_model import Net
 from src.utils.training import train, test
@@ -69,12 +69,6 @@ def main(args):
     model = Net().to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     
-    # Training metrics
-    train_losses = []
-    train_acc = []
-    val_losses = []
-    val_acc = []
-    
     # Training loop
     best_val_acc = 0
     for epoch in range(1, args.epochs + 1):
@@ -110,7 +104,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42, metavar='S',
                         help='random seed (default: 42)')
     parser.add_argument('--train-split', type=float, default=0.85,
-                        help='proportion of training data to use for training (default: 0.85)')
+                        help='proportion of training data to use (default: 0.85)')
     parser.add_argument('--quick-test', action='store_true', default=False,
                         help='use reduced epochs and batch size for testing')
     

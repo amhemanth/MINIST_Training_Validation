@@ -4,37 +4,49 @@ Unit tests for data loading functionality
 
 import os
 import sys
-import torch
-import pytest
-import numpy as np
 
 # Add the project root directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import torch
 from src.data.mnist_data import get_data_loaders
 
-def test_data_loaders_creation():
-    """Test if data loaders can be created"""
+def test_data_loading():
+    """Test if data loaders are created correctly"""
     train_loader, val_loader, test_loader = get_data_loaders(batch_size=32)
-    assert train_loader is not None
-    assert val_loader is not None
-    assert test_loader is not None
-
-def test_batch_shapes():
-    """Test if batches have correct shapes"""
-    train_loader, _, _ = get_data_loaders(batch_size=32)
+    
+    # Check if data loaders are created
+    assert train_loader is not None, "Training loader should be created"
+    assert val_loader is not None, "Validation loader should be created"
+    assert test_loader is not None, "Test loader should be created"
+    
+    # Check batch size
     for data, target in train_loader:
-        assert data.shape == (32, 1, 28, 28), f"Expected shape (32, 1, 28, 28), got {data.shape}"
-        assert target.shape == (32,), f"Expected shape (32,), got {target.shape}"
+        assert data.shape[0] == 32, "Training batch size should be 32"
+        break
+        
+    for data, target in val_loader:
+        assert data.shape[0] <= 32, "Validation batch size should be <= 32"
+        break
+        
+    for data, target in test_loader:
+        assert data.shape[0] == 32, "Test batch size should be 32"
+        break
+
+def test_data_shape():
+    """Test if data has correct shape and type"""
+    train_loader, _, _ = get_data_loaders(batch_size=1)
+    
+    for data, target in train_loader:
+        assert data.shape == (1, 1, 28, 28), "Data should be 28x28 grayscale images"
+        assert data.dtype == torch.float32, "Data should be float32"
+        assert target.dtype == torch.int64, "Target should be int64"
         break
 
 def test_data_normalization():
     """Test if data is properly normalized"""
     train_loader, _, _ = get_data_loaders(batch_size=32)
     for data, _ in train_loader:
-        # For MNIST with mean=0.1307 and std=0.3081:
-        # min_val = (0 - 0.1307) / 0.3081 ≈ -0.4242
-        # max_val = (1 - 0.1307) / 0.3081 ≈ 2.8215
         min_val = (-0.1307) / 0.3081  # Normalized value for pixel value 0
         max_val = (1 - 0.1307) / 0.3081  # Normalized value for pixel value 1
         assert torch.all(data >= min_val - 1e-6) and torch.all(data <= max_val + 1e-6), \

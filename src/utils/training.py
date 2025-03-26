@@ -7,7 +7,6 @@ It includes functions for training epochs and model evaluation on test/validatio
 
 import torch
 import torch.nn.functional as F
-from tqdm import tqdm
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=10):
     """Train the model for one epoch.

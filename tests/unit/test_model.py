@@ -4,13 +4,11 @@ Unit tests for model architecture
 
 import os
 import sys
-import torch
-import pytest
-import numpy as np
 
 # Add the project root directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
+import torch
 from src.models.mnist_model import Net
 
 def test_model_creation():
