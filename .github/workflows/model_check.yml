@@ -123,15 +123,14 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3.5.3
-    - name: Download all coverage data
+    - name: Download coverage artifacts
       uses: actions/download-artifact@v4
       with:
-        pattern: *-test-coverage
-        merge-multiple: true
-    - name: Display combined coverage report
+        path: coverage-data
+        pattern: '**/*-test-coverage'
+    - name: Combine coverage reports
       run: |
-        ls -la
-        cat coverage.xml
+        ls -la coverage-data
         echo "Coverage reports downloaded and available in artifacts"
 
   model-validation:
