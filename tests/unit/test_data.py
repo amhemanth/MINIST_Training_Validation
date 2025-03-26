@@ -32,9 +32,13 @@ def test_data_normalization():
     """Test if data is properly normalized"""
     train_loader, _, _ = get_data_loaders(batch_size=32)
     for data, _ in train_loader:
-        # Check if data is within expected range for MNIST normalization
-        assert torch.all(data >= -0.4242) and torch.all(data <= 2.8215), \
-            "Data should be normalized to expected range"
+        # For MNIST with mean=0.1307 and std=0.3081:
+        # min_val = (0 - 0.1307) / 0.3081 ≈ -0.4242
+        # max_val = (1 - 0.1307) / 0.3081 ≈ 2.8215
+        min_val = (-0.1307) / 0.3081  # Normalized value for pixel value 0
+        max_val = (1 - 0.1307) / 0.3081  # Normalized value for pixel value 1
+        assert torch.all(data >= min_val - 1e-6) and torch.all(data <= max_val + 1e-6), \
+            f"Data should be normalized to range [{min_val:.4f}, {max_val:.4f}]"
         break
 
 def test_train_val_split():

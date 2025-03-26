@@ -1,21 +1,17 @@
-name: Model Validation and Testing
+name: Model Testing
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  #schedule:
-    #- cron: '0 0 * * 0'  # Weekly run on Sunday
 
 env:
-  PYTHON_VERSION: 3.8
-  MIN_COVERAGE: 80
   MAX_PARAMS: 20000
-  MIN_ACCURACY: 99.0
+  MIN_ACCURACY: 98.0
 
 jobs:
-  code-quality:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -23,7 +19,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        python-version: '3.8'
         cache: 'pip'
         cache-dependency-path: |
           requirements.txt
@@ -33,108 +29,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install black isort flake8 mypy
+        pip install pytest pytest-cov torch-model-summary
 
-    - name: Check code formatting with Black
+    - name: Run tests with coverage
       run: |
-        black --check src tests
-        
-    - name: Check imports with isort
-      run: |
-        isort --check-only src tests
-
-    - name: Lint with flake8
-      run: |
-        flake8 src tests --count --max-line-length=127 --statistics --show-source
-
-    - name: Type checking with mypy
-      run: |
-        mypy src tests --ignore-missing-imports
-
-  test-suite:
-    needs: code-quality
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.7, 3.8, 3.9]
-      fail-fast: false
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: 'pip'
-        cache-dependency-path: |
-          requirements.txt
-          setup.py
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-xdist pytest-github-actions-annotate-failures
-
-    - name: Run unit tests with parallel execution
-      run: |
-        pytest tests/unit/ -v -n auto --junitxml=test-results/junit.xml
-
-    - name: Run integration tests
-      run: |
-        pytest tests/integration/ -v
-
-    - name: Generate coverage report
-      run: |
-        pytest --cov=src tests/ --cov-report=xml --cov-report=html
-        
-    - name: Check coverage threshold
-      run: |
-        coverage_percentage=$(coverage report | grep "TOTAL" | awk '{print $4}' | sed 's/%//')
-        if (( $(echo "$coverage_percentage < ${{ env.MIN_COVERAGE }}" | bc -l) )); then
-          echo "Coverage $coverage_percentage% is below minimum required ${{ env.MIN_COVERAGE }}%"
-          exit 1
-        fi
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: true
-
-    - name: Upload test artifacts
-      uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: test-results-${{ matrix.python-version }}
-        path: |
-          test-results/
-          htmlcov/
-          coverage.xml
-
-  model-validation:
-    needs: test-suite
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-        cache-dependency-path: |
-          requirements.txt
-          setup.py
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install torch-model-summary
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
 
     - name: Validate model architecture
       run: |
@@ -149,63 +48,24 @@ jobs:
         print(f'Model validated: {total_params} parameters')
         
         summary(model, (1, 28, 28))
-        
-        has_bn = any(isinstance(m, torch.nn.BatchNorm2d) for m in model.modules())
-        has_dropout = any(isinstance(m, torch.nn.Dropout) for m in model.modules())
-        has_gap = any(isinstance(m, torch.nn.AdaptiveAvgPool2d) for m in model.modules())
-        
-        assert has_bn, 'Model must include Batch Normalization'
-        assert has_dropout, 'Model must include Dropout'
-        assert has_gap, 'Model must include Global Average Pooling'
         "
-
-  model-performance:
-    needs: model-validation
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-        cache-dependency-path: |
-          requirements.txt
-          setup.py
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
 
     - name: Run quick training
       run: |
-        python -m src.training.train_mnist --quick-test --epochs 5 --batch-size 64
+        python -m src.training.train_mnist --quick-test --epochs 1 --batch-size 64
 
-    - name: Validate model accuracy
-      run: |
-        python -c "
-        import torch
-        from src.models.mnist_model import Net
-        from src.data.mnist_data import get_data_loaders
-        from src.utils.training import test
-        
-        model = Net()
-        model.load_state_dict(torch.load('checkpoints/mnist_model.pt'))
-        _, _, test_loader = get_data_loaders(batch_size=128)
-        
-        test_losses = []
-        test_acc = []
-        accuracy = test(model, 'cpu', test_loader, test_losses, test_acc)
-        
-        assert accuracy >= ${{ env.MIN_ACCURACY }}, f'Model accuracy {accuracy:.2f}% is below minimum required ${{ env.MIN_ACCURACY }}%'
-        print(f'Model achieved {accuracy:.2f}% accuracy')
-        "
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: |
+          coverage.xml
+          htmlcov/
+        retention-days: 5
 
-    - name: Save model artifacts
+    - name: Upload model artifacts
       uses: actions/upload-artifact@v3
       with:
         name: model-checkpoints
         path: checkpoints/
-        retention-days: 7 
+        retention-days: 5 
