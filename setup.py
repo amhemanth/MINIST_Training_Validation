@@ -15,7 +15,7 @@ setup(
         "isort>=5.9.3",
         "flake8>=3.9.2",
         "mypy>=0.910",
-        "torch-model-summary>=0.1.1",
+        "torchinfo>=1.7.0",
     ],
     python_requires=">=3.7",
 ) 
