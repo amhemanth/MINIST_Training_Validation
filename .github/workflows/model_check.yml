@@ -1,54 +1,60 @@
+# Workflow name displayed in GitHub Actions UI
 name: Model Testing and Validation
 
+# Define when this workflow will run
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]  # Trigger on pushes to main branch
   pull_request:
-    branches: [ main ]
+    branches: [ main ]  # Trigger on PRs targeting main branch
 
+# Environment variables used across jobs
 env:
-  MAX_PARAMS: 20000
-  MIN_ACCURACY: 98.0
-  PYTHON_VERSION: 3.8
-  PYTHONPATH: ${{ github.workspace }}
-  MIN_COVERAGE: 80
+  MAX_PARAMS: 20000      # Maximum allowed model parameters
+  MIN_ACCURACY: 98.0     # Minimum required model accuracy
+  PYTHON_VERSION: 3.8    # Python version to use
+  PYTHONPATH: ${{ github.workspace }}  # Add workspace to Python path
+  MIN_COVERAGE: 80       # Minimum required code coverage percentage
 
+# Workflow jobs
 jobs:
+  # Job 1: Code Quality Checks
   code-quality:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
+    - name: Checkout repository  # Get the code
       uses: actions/checkout@v3.5.3
       with:
-        ref: ${{ github.head_ref }}
-        fetch-depth: 0
-    - name: Set up Python
+        ref: ${{ github.head_ref }}  # Checkout the PR branch
+        fetch-depth: 0               # Fetch all history for better diffs
+    - name: Set up Python  # Install Python
       uses: actions/setup-python@v4.7.1
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-    - name: Install dependencies
+        cache: 'pip'  # Cache pip dependencies
+    - name: Install dependencies  # Install code quality tools
       run: |
         python -m pip install --upgrade pip
         pip install black flake8 isort mypy pytest
-    - name: Format code with Black
+    - name: Format code with Black  # Auto-format Python code
       run: |
         black src tests
-    - name: Sort imports with isort
+    - name: Sort imports with isort  # Sort Python imports
       run: |
         isort src tests
-    - name: Commit changes
+    - name: Commit changes  # Auto-commit formatting changes
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
         commit_message: 'style: format code with Black and isort'
         file_pattern: '*.py'
-    - name: Lint with flake8
+    - name: Lint with flake8  # Check code style
       run: flake8 src tests --max-line-length=100
-    - name: Type checking with mypy
+    - name: Type checking with mypy  # Check type hints
       run: mypy src tests
 
+  # Job 2: Unit Tests
   unit-tests:
-    needs: code-quality
+    needs: code-quality  # Run after code-quality job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -58,19 +64,19 @@ jobs:
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
-    - name: Install dependencies
+    - name: Install dependencies  # Install test dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-cov pytest-xdist coverage
         pip install -e .
-    - name: Run unit tests with coverage
+    - name: Run unit tests with coverage  # Run tests and generate coverage
       run: |
         coverage run -m pytest tests/unit -v -n auto
         coverage report --fail-under=${{ env.MIN_COVERAGE }}
         coverage xml
         coverage html
-    - name: Upload coverage to Codecov
+    - name: Upload coverage to Codecov  # Share coverage reports
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -78,7 +84,7 @@ jobs:
         flags: unittests
         name: codecov-unit
         fail_ci_if_error: true
-    - name: Upload coverage artifacts
+    - name: Upload coverage artifacts  # Save coverage reports
       uses: actions/upload-artifact@v4.0.0
       with:
         name: unit-test-coverage
@@ -87,8 +93,9 @@ jobs:
           htmlcov/
         retention-days: 5
 
+  # Job 3: Integration Tests
   integration-tests:
-    needs: unit-tests
+    needs: unit-tests  # Run after unit-tests job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -127,24 +134,26 @@ jobs:
           htmlcov/
         retention-days: 5
 
+  # Job 4: Coverage Report Generation
   coverage-report:
-    needs: [unit-tests, integration-tests]
+    needs: [unit-tests, integration-tests]  # Run after both test jobs
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3.5.3
-    - name: Download coverage artifacts
+    - name: Download coverage artifacts  # Get all coverage reports
       uses: actions/download-artifact@v4
       with:
         path: coverage-data
         pattern: '**/*-test-coverage'
-    - name: Combine coverage reports
+    - name: Combine coverage reports  # Merge coverage data
       run: |
         ls -la coverage-data
         echo "Coverage reports downloaded and available in artifacts"
 
+  # Job 5: Model Architecture Validation
   model-validation:
-    needs: coverage-report
+    needs: coverage-report  # Run after coverage report
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -160,7 +169,7 @@ jobs:
         pip install -r requirements.txt
         pip install torch-model-summary
         pip install -e .
-    - name: Validate model architecture
+    - name: Validate model architecture  # Check model parameters
       run: |
         python -c "
         from src.models.mnist_model import Net
@@ -172,8 +181,9 @@ jobs:
         print(f'Model validation passed: {total_params} parameters')
         "
 
+  # Job 6: Model Performance Testing
   model-performance:
-    needs: model-validation
+    needs: model-validation  # Run after model validation
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -188,10 +198,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -e .
-    - name: Quick training test
+    - name: Quick training test  # Test model training
       run: |
         python train.py --epochs 1 --batch-size 64 --quick-test
-    - name: Upload model artifacts
+    - name: Upload model artifacts  # Save trained model
       uses: actions/upload-artifact@v4.0.0
       with:
         name: model-checkpoint

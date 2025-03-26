@@ -1,5 +1,5 @@
 """
-Unit tests for MNIST data loading
+Unit tests for data loading functionality
 """
 
 import os

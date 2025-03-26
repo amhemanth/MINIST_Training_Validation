@@ -1,5 +1,13 @@
 """
-Main training script for MNIST model
+Training script for MNIST model
+
+This script provides the main training loop for the MNIST digit classification model.
+It handles:
+    - Data loading and preprocessing
+    - Model initialization and training
+    - Validation during training
+    - Model checkpointing
+    - Command line argument parsing
 """
 
 import argparse
@@ -11,11 +19,38 @@ import torch.optim as optim
 # Add parent directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from src.models.mnist_model import Net
 from src.data.mnist_data import get_data_loaders
+from src.models.mnist_model import Net
 from src.utils.training import train, test
 
 def main(args):
+    """Main training function.
+    
+    This function orchestrates the training process:
+        - Sets up CUDA if available
+        - Creates necessary directories
+        - Initializes data loaders
+        - Creates and trains the model
+        - Performs validation
+        - Saves the best model
+        - Evaluates on test set
+    
+    Args:
+        args (argparse.Namespace): Command line arguments containing:
+            - batch_size: Number of samples per batch
+            - epochs: Number of training epochs
+            - lr: Learning rate
+            - momentum: SGD momentum
+            - no_cuda: Flag to disable CUDA
+            - seed: Random seed
+            - train_split: Proportion of training data to use
+            - quick_test: Flag for quick testing mode
+    
+    Note:
+        The function saves the best model based on validation accuracy
+        in the 'checkpoints' directory. The final model is evaluated
+        on the test set using the best saved model.
+    """
     # Set device
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -44,11 +79,11 @@ def main(args):
     best_val_acc = 0
     for epoch in range(1, args.epochs + 1):
         print(f"\nEpoch {epoch}")
-        train(model, device, train_loader, optimizer, epoch, train_losses, train_acc)
+        train(model, device, train_loader, optimizer, epoch)
         
         # Validation
         print("\nValidation:")
-        val_accuracy = test(model, device, val_loader, val_losses, val_acc)
+        val_accuracy = test(model, device, val_loader)
         
         # Save best model
         if val_accuracy > best_val_acc:
@@ -58,9 +93,7 @@ def main(args):
     # Load best model and test
     model.load_state_dict(torch.load("checkpoints/mnist_model.pt"))
     print("\nFinal Test Results:")
-    test_losses = []
-    test_acc = []
-    test(model, device, test_loader, test_losses, test_acc)
+    test(model, device, test_loader)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='PyTorch MNIST Training')

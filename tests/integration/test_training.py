@@ -1,5 +1,5 @@
 """
-Integration tests for MNIST model training
+Integration tests for training functionality
 """
 
 import os
@@ -11,8 +11,8 @@ import numpy as np
 # Add the project root directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from src.models.mnist_model import Net
 from src.data.mnist_data import get_data_loaders
+from src.models.mnist_model import Net
 from src.utils.training import train, test
 
 @pytest.fixture
@@ -86,4 +86,7 @@ def test_training_convergence(model_and_data):
     
     # Check if loss is decreasing
     assert train_losses[-1] < train_losses[0], "Training loss should decrease"
-    assert val_losses[-1] < val_losses[0], "Validation loss should decrease" 
+    assert val_losses[-1] < val_losses[0], "Validation loss should decrease"
+
+def test_training_loop():
+    # ... existing code ... 

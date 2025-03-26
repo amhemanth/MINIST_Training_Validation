@@ -1,5 +1,5 @@
 """
-Unit tests for MNIST model architecture
+Unit tests for model architecture
 """
 
 import os
@@ -56,4 +56,7 @@ def test_model_training_mode():
     model.train()
     assert model.training, "Model should be in training mode"
     model.eval()
-    assert not model.training, "Model should be in evaluation mode" 
+    assert not model.training, "Model should be in evaluation mode"
+
+def test_model_output():
+    # ... existing code ... 
