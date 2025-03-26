@@ -1,4 +1,4 @@
-name: Model Testing
+name: Model Testing and Validation
 
 on:
   push:
@@ -9,63 +9,79 @@ on:
 env:
   MAX_PARAMS: 20000
   MIN_ACCURACY: 98.0
+  PYTHON_VERSION: 3.8
 
 jobs:
-  test:
+  test-suite:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
-        cache: 'pip'
-        cache-dependency-path: |
-          requirements.txt
-          setup.py
-
+        python-version: ${{ env.PYTHON_VERSION }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov torch-model-summary
-
+        pip install pytest pytest-cov
     - name: Run tests with coverage
       run: |
         pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
-
-    - name: Validate model architecture
-      run: |
-        python -c "
-        from src.models.mnist_model import Net
-        import torch
-        from torchsummary import summary
-        
-        model = Net()
-        total_params = sum(p.numel() for p in model.parameters())
-        assert total_params < ${{ env.MAX_PARAMS }}, f'Model has {total_params} parameters, should be < ${{ env.MAX_PARAMS }}'
-        print(f'Model validated: {total_params} parameters')
-        
-        summary(model, (1, 28, 28))
-        "
-
-    - name: Run quick training
-      run: |
-        python -m src.training.train_mnist --quick-test --epochs 1 --batch-size 64
-
-    - name: Upload coverage report
+    - name: Upload coverage reports
       uses: actions/upload-artifact@v3
       with:
-        name: coverage-report
+        name: coverage-reports
         path: |
           coverage.xml
           htmlcov/
         retention-days: 5
 
+  model-validation:
+    needs: test-suite
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install torch-model-summary
+    - name: Validate model architecture
+      run: |
+        python -c "
+        from src.models.mnist_model import Net
+        from torchinfo import summary
+        model = Net()
+        model_stats = summary(model, input_size=(1, 1, 28, 28), verbose=0)
+        total_params = sum(p.numel() for p in model.parameters())
+        assert total_params < int('${{ env.MAX_PARAMS }}'), f'Model has {total_params} parameters, exceeding limit of ${{ env.MAX_PARAMS }}'
+        print(f'Model validation passed: {total_params} parameters')
+        "
+
+  model-performance:
+    needs: model-validation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Quick training test
+      run: |
+        python train.py --epochs 1 --batch-size 64 --quick-test
     - name: Upload model artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: model-checkpoints
+        name: model-checkpoint
         path: checkpoints/
         retention-days: 5 
