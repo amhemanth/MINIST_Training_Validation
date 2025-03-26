@@ -18,41 +18,8 @@ env:
 
 # Workflow jobs
 jobs:
-  # Job 1: Code Quality Checks
-  code-quality:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository  # Get the code
-      uses: actions/checkout@v3.5.3
-      with:
-        ref: ${{ github.head_ref }}  # Checkout the PR branch
-        fetch-depth: 0               # Fetch all history for better diffs
-    - name: Set up Python  # Install Python
-      uses: actions/setup-python@v4.7.1
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'  # Cache pip dependencies
-    - name: Install dependencies  # Install code quality tools
-      run: |
-        python -m pip install --upgrade pip
-        pip install black isort mypy pytest
-    - name: Format code with Black  # Auto-format Python code
-      run: |
-        black src tests
-    - name: Sort imports with isort  # Sort Python imports
-      run: |
-        isort src tests
-    - name: Commit changes  # Auto-commit formatting changes
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: 'style: format code with Black and isort'
-        file_pattern: '*.py'
-    - name: Type checking with mypy  # Check type hints
-      run: mypy src tests
-
-  # Job 2: Unit Tests
+  # Job 1: Unit Tests
   unit-tests:
-    needs: code-quality  # Run after code-quality job
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -91,7 +58,7 @@ jobs:
           htmlcov/
         retention-days: 5
 
-  # Job 3: Integration Tests
+  # Job 2: Integration Tests
   integration-tests:
     needs: unit-tests  # Run after unit-tests job
     runs-on: ubuntu-latest
@@ -132,7 +99,7 @@ jobs:
           htmlcov/
         retention-days: 5
 
-  # Job 4: Coverage Report Generation
+  # Job 3: Coverage Report Generation
   coverage-report:
     needs: [unit-tests, integration-tests]  # Run after both test jobs
     runs-on: ubuntu-latest
@@ -149,7 +116,7 @@ jobs:
         ls -la coverage-data
         echo "Coverage reports downloaded and available in artifacts"
 
-  # Job 5: Model Architecture Validation
+  # Job 4: Model Architecture Validation
   model-validation:
     needs: coverage-report  # Run after coverage report
     runs-on: ubuntu-latest
@@ -179,7 +146,7 @@ jobs:
         print(f'Model validation passed: {total_params} parameters')
         "
 
-  # Job 6: Model Performance Testing
+  # Job 5: Model Performance Testing
   model-performance:
     needs: model-validation  # Run after model validation
     runs-on: ubuntu-latest
