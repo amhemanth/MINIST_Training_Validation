@@ -1,9 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 setup(
     name="mnist-classification",
     version="1.0.0",
-    packages=find_packages(),
+    packages=find_namespace_packages(include=["src", "src.*"]),
+    package_dir={"": "."},
+    package_data={"": ["*.py"]},
     install_requires=[
         "torch>=1.9.0",
         "torchvision>=0.10.0",

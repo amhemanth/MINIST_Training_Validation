@@ -34,11 +34,19 @@ jobs:
         python -m pip install --upgrade pip wheel setuptools
         pip install -r requirements.txt
         pip install pytest pytest-cov pytest-xdist coverage
+        # Show directory structure before install
+        echo "Directory structure before install:"
+        find src -type f -name "*.py"
+        # Install package
         pip install -e .
-        # Verify package installation
+        # Show installed package info
+        pip show mnist-classification
+        # Show directory structure after install
+        echo "Directory structure after install:"
+        find src -type f -name "*.py"
+        # Verify imports
         python -c "import sys; print('Python path:', sys.path)"
-        python -c "import src; print('src location:', src.__file__)"
-        python -c "from src.data import mnist_data; print('mnist_data location:', mnist_data.__file__)"
+        python -c "import src; from src import data; print('src.data location:', data.__file__)"
     - name: Run unit tests with coverage  # Run tests and generate coverage
       env:
         PYTHONPATH: ${{ github.workspace }}
