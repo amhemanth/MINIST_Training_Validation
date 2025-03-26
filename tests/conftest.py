@@ -8,7 +8,7 @@ import pytest
 import torch
 
 # Add the project root directory to Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 @pytest.fixture(scope="session")
 def device():

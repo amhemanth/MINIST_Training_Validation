@@ -37,7 +37,7 @@ jobs:
         pip install -e .
     - name: Run unit tests with coverage  # Run tests and generate coverage
       run: |
-        coverage run -m pytest tests/unit -v -n auto
+        python -m pytest tests/unit -v -n auto --cov=src
         coverage report --fail-under=${{ env.MIN_COVERAGE }}
         coverage xml
         coverage html
