@@ -10,9 +10,34 @@ env:
   MAX_PARAMS: 20000
   MIN_ACCURACY: 98.0
   PYTHON_VERSION: 3.8
+  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
-  test-suite:
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3.5.3
+    - name: Set up Python
+      uses: actions/setup-python@v4.7.1
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 isort mypy pytest
+    - name: Check code formatting with Black
+      run: black --check src tests
+    - name: Check imports with isort
+      run: isort --check-only src tests
+    - name: Lint with flake8
+      run: flake8 src tests --max-line-length=100
+    - name: Type checking with mypy
+      run: mypy src tests
+
+  unit-tests:
+    needs: code-quality
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -27,20 +52,50 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-cov
-    - name: Run tests with coverage
+        pip install -e .
+    - name: Run unit tests
       run: |
-        pytest tests/ -v --cov=src --cov-report=xml --cov-report=html
-    - name: Upload coverage reports
+        pytest tests/unit -v --cov=src --cov-report=xml --cov-report=html
+    - name: Upload unit test coverage
       uses: actions/upload-artifact@v4.0.0
       with:
-        name: coverage-reports
+        name: unit-test-coverage
+        path: |
+          coverage.xml
+          htmlcov/
+        retention-days: 5
+
+  integration-tests:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3.5.3
+    - name: Set up Python
+      uses: actions/setup-python@v4.7.1
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+        pip install -e .
+    - name: Run integration tests
+      run: |
+        pytest tests/integration -v --cov=src --cov-report=xml --cov-report=html
+    - name: Upload integration test coverage
+      uses: actions/upload-artifact@v4.0.0
+      with:
+        name: integration-test-coverage
         path: |
           coverage.xml
           htmlcov/
         retention-days: 5
 
   model-validation:
-    needs: test-suite
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -55,6 +110,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install torch-model-summary
+        pip install -e .
     - name: Validate model architecture
       run: |
         python -c "
@@ -82,6 +138,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install -e .
     - name: Quick training test
       run: |
         python train.py --epochs 1 --batch-size 64 --quick-test

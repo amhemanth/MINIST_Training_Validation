@@ -1,9 +1,8 @@
 # MNIST Classification Project
 
-![CI/CD](https://github.com/username/mnist-classification/workflows/Model%20Validation/badge.svg)
-![Coverage](https://codecov.io/gh/username/mnist-classification/branch/main/graph/badge.svg)
+![CI/CD](https://github.com/amhemanth/MINIST_Training_Validation/workflows/Model%20Validation/badge.svg)
+![Coverage](https://codecov.io/gh/amhemanth/MINIST_Training_Validation/branch/main/graph/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.7%2B-blue)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-red)
 ![Code Style](https://img.shields.io/badge/code%20style-black-black)
 ![Tests](https://img.shields.io/badge/tests-pytest-green)
 ![License](https://img.shields.io/badge/license-MIT-green)
