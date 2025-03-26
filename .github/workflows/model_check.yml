@@ -5,8 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule:
-    - cron: '0 0 * * 0'  # Weekly run on Sunday
+  #schedule:
+    #- cron: '0 0 * * 0'  # Weekly run on Sunday
 
 env:
   PYTHON_VERSION: 3.8
@@ -18,20 +18,16 @@ jobs:
   code-quality:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Cache pip packages
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements.txt
+          setup.py
 
     - name: Install dependencies
       run: |
@@ -64,12 +60,16 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements.txt
+          setup.py
 
     - name: Install dependencies
       run: |
@@ -98,7 +98,7 @@ jobs:
         fi
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
         flags: unittests
@@ -106,7 +106,7 @@ jobs:
         fail_ci_if_error: true
 
     - name: Upload test artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if: always()
       with:
         name: test-results-${{ matrix.python-version }}
@@ -119,12 +119,16 @@ jobs:
     needs: test-suite
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements.txt
+          setup.py
 
     - name: Install dependencies
       run: |
@@ -139,16 +143,13 @@ jobs:
         import torch
         from torchsummary import summary
         
-        # Check parameters
         model = Net()
         total_params = sum(p.numel() for p in model.parameters())
         assert total_params < ${{ env.MAX_PARAMS }}, f'Model has {total_params} parameters, should be < ${{ env.MAX_PARAMS }}'
         print(f'Model validated: {total_params} parameters')
         
-        # Print model summary
         summary(model, (1, 28, 28))
         
-        # Verify architecture components
         has_bn = any(isinstance(m, torch.nn.BatchNorm2d) for m in model.modules())
         has_dropout = any(isinstance(m, torch.nn.Dropout) for m in model.modules())
         has_gap = any(isinstance(m, torch.nn.AdaptiveAvgPool2d) for m in model.modules())
@@ -162,12 +163,16 @@ jobs:
     needs: model-validation
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements.txt
+          setup.py
 
     - name: Install dependencies
       run: |
@@ -176,7 +181,7 @@ jobs:
 
     - name: Run quick training
       run: |
-        python src/training/train_mnist.py --quick-test --epochs 5 --batch-size 64
+        python -m src.training.train_mnist --quick-test --epochs 5 --batch-size 64
 
     - name: Validate model accuracy
       run: |
@@ -199,32 +204,8 @@ jobs:
         "
 
     - name: Save model artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
-        name: model-artifacts
-        path: |
-          checkpoints/
-          logs/
-
-  notify:
-    needs: [code-quality, test-suite, model-validation, model-performance]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-    - uses: technote-space/workflow-conclusion-action@v2
-    
-    - name: Send Slack notification
-      if: env.WORKFLOW_CONCLUSION != 'success'
-      uses: rtCamp/action-slack-notify@v2
-      env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-        SLACK_COLOR: ${{ env.WORKFLOW_CONCLUSION }}
-        SLACK_TITLE: 'Pipeline Status: ${{ env.WORKFLOW_CONCLUSION }}'
-        SLACK_MESSAGE: |
-          Repository: ${{ github.repository }}
-          Workflow: ${{ github.workflow }}
-          Status: ${{ env.WORKFLOW_CONCLUSION }}
-          Commit: ${{ github.sha }}
-          Author: ${{ github.actor }}
-          
-          Check the logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 
+        name: model-checkpoints
+        path: checkpoints/
+        retention-days: 7 

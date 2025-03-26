@@ -30,20 +30,20 @@ class Net(nn.Module):
         self.dropout2 = nn.Dropout(0.1)
         
         # Third Block
-        self.conv3 = nn.Conv2d(16, 32, 3, padding=1)  # Input: 7x7, Output: 7x7, RF: 24x24
-        self.bn3 = nn.BatchNorm2d(32)
+        self.conv3 = nn.Conv2d(16, 24, 3, padding=1)  # Input: 7x7, Output: 7x7, RF: 24x24
+        self.bn3 = nn.BatchNorm2d(24)
         self.dropout3 = nn.Dropout(0.2)
         
         # Fourth Block
-        self.conv4 = nn.Conv2d(32, 48, 3, padding=1)  # Input: 3x3, Output: 3x3, RF: 44x44
-        self.bn4 = nn.BatchNorm2d(48)
+        self.conv4 = nn.Conv2d(24, 32, 3, padding=1)  # Input: 3x3, Output: 3x3, RF: 44x44
+        self.bn4 = nn.BatchNorm2d(32)
         self.dropout4 = nn.Dropout(0.2)
         
         # Global Average Pooling
         self.gap = nn.AdaptiveAvgPool2d(1)
         
         # Final Layer
-        self.fc = nn.Linear(48, 10)
+        self.fc = nn.Linear(32, 10)
 
     def forward(self, x):
         # First Block
@@ -64,7 +64,7 @@ class Net(nn.Module):
         
         # Global Average Pooling
         x = self.gap(x)  # Output: 1x1
-        x = x.view(-1, 48)  # Flatten: (batch_size, 48)
+        x = x.view(-1, 32)  # Flatten: (batch_size, 32)
         
         # Final Layer
         x = self.fc(x)  # Output: (batch_size, 10)
