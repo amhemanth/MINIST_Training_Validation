@@ -1,6 +1,6 @@
 # MNIST Classification Project
 
-![CI/CD](https://github.com/amhemanth/MINIST_Training_Validation/workflows/Model%20Validation/badge.svg)
+![CI/CD](https://github.com/amhemanth/MINIST_Training_Validation/workflows/Model%20Testing%20and%20Validation/badge.svg)
 ![Coverage](https://codecov.io/gh/amhemanth/MINIST_Training_Validation/branch/main/graph/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.7%2B-blue)
 ![Code Style](https://img.shields.io/badge/code%20style-black-black)
