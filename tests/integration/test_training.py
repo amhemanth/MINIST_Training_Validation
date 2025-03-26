@@ -89,4 +89,23 @@ def test_training_convergence(model_and_data):
     assert val_losses[-1] < val_losses[0], "Validation loss should decrease"
 
 def test_training_loop():
-    # ... existing code ... 
+    """Test complete training loop with all components"""
+    device = torch.device("cpu")
+    model = Net().to(device)
+    train_loader, val_loader, _ = get_data_loaders(batch_size=32)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    
+    # Run a complete training loop
+    train_losses = []
+    train_acc = []
+    val_losses = []
+    val_acc = []
+    
+    for epoch in range(2):
+        train(model, device, train_loader, optimizer, epoch, train_losses, train_acc)
+        test(model, device, val_loader, val_losses, val_acc)
+    
+    assert len(train_losses) > 0, "Training should record losses"
+    assert len(val_losses) > 0, "Validation should record losses"
+    assert all(0 <= acc <= 100 for acc in train_acc), "Training accuracy should be valid"
+    assert all(0 <= acc <= 100 for acc in val_acc), "Validation accuracy should be valid" 

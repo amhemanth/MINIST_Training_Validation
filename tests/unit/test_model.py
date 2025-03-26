@@ -59,4 +59,20 @@ def test_model_training_mode():
     assert not model.training, "Model should be in evaluation mode"
 
 def test_model_output():
-    # ... existing code ... 
+    """Test model output properties"""
+    model = Net()
+    batch_size = 32
+    x = torch.randn(batch_size, 1, 28, 28)
+    output = model(x)
+    
+    # Check output shape
+    assert output.shape == (batch_size, 10), "Output shape should be (batch_size, 10)"
+    
+    # Check if output is log probabilities (log_softmax)
+    assert torch.allclose(torch.exp(output).sum(dim=1), 
+                         torch.ones(batch_size)), "Output should be log probabilities"
+    
+    # Check if output values are in reasonable range
+    assert (output <= 0).all(), "Log probabilities should be <= 0"
+    assert not torch.isnan(output).any(), "Output should not contain NaN values"
+    assert not torch.isinf(output).any(), "Output should not contain inf values" 
